@@ -23,10 +23,10 @@ namespace Microsoft.Azure.WebJobs.Script.Binding
         private IJobHostMetadataProvider _metadataProvider;
 
         public GeneralScriptBindingProvider(
-            JobHostConfiguration config,
+            JobHostOptions hostOptions,
             JObject hostMetadata,
             ILogger logger)
-            : base(config, hostMetadata, logger)
+            : base(hostOptions, hostMetadata, logger)
         {
         }
 

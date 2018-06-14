@@ -49,6 +49,7 @@ namespace Microsoft.Azure.WebJobs.Script
         private readonly IScriptHostEnvironment _scriptHostEnvironment;
         private readonly ILoggerProviderFactory _loggerProviderFactory;
         private readonly string _storageConnectionString;
+        private readonly IDistributedLockManager _distributedLockManager;
         private readonly IMetricsLogger _metricsLogger;
         private readonly string _hostLogPath;
         private readonly string _hostConfigFilePath;
@@ -83,7 +84,7 @@ namespace Microsoft.Azure.WebJobs.Script
         private ProxyClientExecutor _proxyClient;
         private IFunctionRegistry _functionDispatcher;
         private ILoggerFactory _loggerFactory;
-        private JobHostConfiguration _hostConfig;
+        private JobHostOptions _hostOptions;
         private List<FunctionDescriptorProvider> _descriptorProviders;
         private IProcessRegistry _processRegistry = new EmptyProcessRegistry();
 
@@ -92,6 +93,7 @@ namespace Microsoft.Azure.WebJobs.Script
         // Map from BindingType to the Assembly Qualified Type name for its IExtensionConfigProvider object.
 
         protected internal ScriptHost(IScriptHostEnvironment environment,
+            IDistributedLockManager distributedLockManager,
             IScriptEventManager eventManager,
             ScriptHostConfiguration scriptConfig = null,
             ScriptSettingsManager settingsManager = null,
@@ -100,9 +102,10 @@ namespace Microsoft.Azure.WebJobs.Script
             : base(scriptConfig.HostConfig)
         {
             scriptConfig = scriptConfig ?? new ScriptHostConfiguration();
-            _hostConfig = scriptConfig.HostConfig;
+            _hostOptions = scriptConfig.HostConfig;
             _instanceId = Guid.NewGuid().ToString();
             _storageConnectionString = AmbientConnectionStringProvider.Instance.GetConnectionString(ConnectionStringNames.Storage);
+            _distributedLockManager = distributedLockManager;
 
             if (!Path.IsPathRooted(scriptConfig.RootScriptPath))
             {
@@ -318,18 +321,18 @@ namespace Microsoft.Azure.WebJobs.Script
         {
             // Ensure we always have an ILoggerFactory,
             // regardless of whether AppInsights is registered or not
-            if (recreate || _hostConfig.LoggerFactory == null)
+            if (recreate || _hostOptions.LoggerFactory == null)
             {
-                _hostConfig.LoggerFactory = new LoggerFactory(Enumerable.Empty<ILoggerProvider>(), Utility.CreateLoggerFilterOptions());
+                _hostOptions.LoggerFactory = new LoggerFactory(Enumerable.Empty<ILoggerProvider>(), Utility.CreateLoggerFilterOptions());
 
                 // If we've created the LoggerFactory, then we are responsible for
                 // disposing. Store this locally for disposal later. We can't rely
                 // on accessing this directly from ScriptConfig.HostConfig as the
                 // ScriptConfig is re-used for every host.
-                _loggerFactory = _hostConfig.LoggerFactory;
+                _loggerFactory = _hostOptions.LoggerFactory;
             }
 
-            ConfigureLoggerFactory(_instanceId, _hostConfig.LoggerFactory, ScriptConfig, _settingsManager, _loggerProviderFactory,
+            ConfigureLoggerFactory(_instanceId, _hostOptions.LoggerFactory, ScriptConfig, _settingsManager, _loggerProviderFactory,
                 () => FileLoggingEnabled, () => IsPrimary, HandleHostError);
         }
 
@@ -355,14 +358,15 @@ namespace Microsoft.Azure.WebJobs.Script
             Logger.LogInformation(signalMessage);
         }
 
+        // TODO: DI (FACAVAL) This needs to move to an options config setup
         // Create a TimeoutConfiguration specified by scriptConfig knobs; else null.
-        internal static JobHostFunctionTimeoutConfiguration CreateTimeoutConfiguration(ScriptHostConfiguration scriptConfig)
+        internal static JobHostFunctionTimeoutOptions CreateTimeoutConfiguration(ScriptHostConfiguration scriptConfig)
         {
             if (scriptConfig.FunctionTimeout == null)
             {
                 return null;
             }
-            return new JobHostFunctionTimeoutConfiguration
+            return new JobHostFunctionTimeoutOptions
             {
                 Timeout = scriptConfig.FunctionTimeout.Value,
                 ThrowOnTimeout = true,
@@ -484,7 +488,7 @@ namespace Microsoft.Azure.WebJobs.Script
             var types = new List<Type>();
             types.Add(functionWrapperType);
             types.AddRange(directTypes);
-            _hostConfig.TypeLocator = new TypeLocator(types);
+            _hostOptions.TypeLocator = new TypeLocator(types);
         }
 
         /// <summary>
@@ -537,7 +541,7 @@ namespace Microsoft.Azure.WebJobs.Script
             if (_storageConnectionString != null)
             {
                 var lockManager = (IDistributedLockManager)Services.GetService(typeof(IDistributedLockManager));
-                _primaryHostCoordinator = PrimaryHostCoordinator.Create(lockManager, TimeSpan.FromSeconds(15), _hostConfig.HostId, _settingsManager.InstanceId, _hostConfig.LoggerFactory);
+                _primaryHostCoordinator = PrimaryHostCoordinator.Create(lockManager, TimeSpan.FromSeconds(15), _hostOptions.HostId, _settingsManager.InstanceId, _hostOptions.LoggerFactory);
             }
 
             // Create the lease manager that will keep handle the primary host blob lease acquisition and renewal
@@ -607,10 +611,10 @@ namespace Microsoft.Azure.WebJobs.Script
         /// </summary>
         private void ApplyEnvironmentSettings()
         {
-            if (_hostConfig.IsDevelopment || InDebugMode)
+            if (_hostOptions.IsDevelopment || InDebugMode)
             {
                 // If we're in debug/development mode, use optimal debug settings
-                _hostConfig.UseDevelopmentSettings();
+                _hostOptions.UseDevelopmentSettings();
             }
         }
 
@@ -627,7 +631,7 @@ namespace Microsoft.Azure.WebJobs.Script
             // The "startup" logger is used in this class for startup related logs. The public logger is used
             // for all other logging after startup.
             ConfigureLoggerFactory();
-            Logger = _startupLogger = _hostConfig.LoggerFactory.CreateLogger(LogCategories.Startup);
+            Logger = _startupLogger = _hostOptions.LoggerFactory.CreateLogger(LogCategories.Startup);
 
             string readingFileMessage = string.Format(CultureInfo.InvariantCulture, "Reading host configuration file '{0}'", _hostConfigFilePath);
             JObject hostConfigObject = LoadHostConfig(_hostConfigFilePath, _startupLogger);
@@ -645,8 +649,8 @@ namespace Microsoft.Azure.WebJobs.Script
             // now the configuration has been read and applied re-create the logger
             // factory and loggers ensuring that filters and settings have been applied
             ConfigureLoggerFactory(recreate: true);
-            _startupLogger = _hostConfig.LoggerFactory.CreateLogger(LogCategories.Startup);
-            Logger = _hostConfig.LoggerFactory.CreateLogger(ScriptConstants.LogCategoryHostGeneral);
+            _startupLogger = _hostOptions.LoggerFactory.CreateLogger(LogCategories.Startup);
+            Logger = _hostOptions.LoggerFactory.CreateLogger(ScriptConstants.LogCategoryHostGeneral);
 
             // Allow tests to modify anything initialized by host.json
             ScriptConfig.OnConfigurationApplied?.Invoke(ScriptConfig);
@@ -662,11 +666,11 @@ namespace Microsoft.Azure.WebJobs.Script
                 _startupLogger.LogWarning("Host id explicitly set in the host.json. It is recommended that you remove the \"id\" property in your host.json.");
             }
 
-            if (string.IsNullOrEmpty(_hostConfig.HostId))
+            if (string.IsNullOrEmpty(_hostOptions.HostId))
             {
-                _hostConfig.HostId = Utility.GetDefaultHostId(_settingsManager, ScriptConfig);
+                _hostOptions.HostId = Utility.GetDefaultHostId(_settingsManager, ScriptConfig);
             }
-            if (string.IsNullOrEmpty(_hostConfig.HostId))
+            if (string.IsNullOrEmpty(_hostOptions.HostId))
             {
                 throw new InvalidOperationException("An 'id' must be specified in the host configuration.");
             }
@@ -674,7 +678,7 @@ namespace Microsoft.Azure.WebJobs.Script
             if (_storageConnectionString == null)
             {
                 // Disable core storage
-                _hostConfig.StorageConnectionString = null;
+                _hostOptions.StorageConnectionString = null;
             }
 
             // only after configuration has been applied and loggers
@@ -734,7 +738,7 @@ namespace Microsoft.Azure.WebJobs.Script
                     registrations,
                     languageWorkerConfig,
                     server.Uri,
-                    _hostConfig.LoggerFactory);
+                    _hostOptions.LoggerFactory);
             };
 
             var configFactory = new WorkerConfigFactory(ScriptSettingsManager.Instance.Configuration, _startupLogger);
@@ -835,7 +839,7 @@ namespace Microsoft.Azure.WebJobs.Script
         private IEnumerable<Type> LoadBindingExtensions(IEnumerable<FunctionMetadata> functionMetadata, JObject hostConfigObject)
         {
             Func<string, FunctionDescriptor> funcLookup = (name) => GetFunctionOrNull(name);
-            _hostConfig.AddService(funcLookup);
+            _hostOptions.AddService(funcLookup);
             var extensionLoader = new ExtensionLoader(ScriptConfig, _startupLogger);
             var usedBindingTypes = extensionLoader.DiscoverBindingTypes(functionMetadata);
 
@@ -993,7 +997,7 @@ namespace Microsoft.Azure.WebJobs.Script
 
         private static Collection<ScriptBindingProvider> LoadBindingProviders(ScriptHostConfiguration config, JObject hostMetadata, ILogger logger, IEnumerable<string> usedBindingTypes)
         {
-            JobHostConfiguration hostConfig = config.HostConfig;
+            JobHostOptions hostConfig = config.HostConfig;
 
             // Register our built in extensions
             var bindingProviderTypes = new Collection<Type>()

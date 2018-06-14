@@ -32,7 +32,7 @@ namespace Microsoft.Azure.WebJobs.Script.Binding
             {
                 if (configSection.TryGetValue("centralizedPoisonQueue", out value))
                 {
-                    Config.Blobs.CentralizedPoisonQueue = (bool)value;
+                    HostOptions.Blobs.CentralizedPoisonQueue = (bool)value;
                 }
             }
 
@@ -46,8 +46,8 @@ namespace Microsoft.Azure.WebJobs.Script.Binding
             httpConfig = httpConfig ?? new HttpExtensionConfiguration();
             httpConfig.SetResponse = HttpBinding.SetResponse;
 
-            Config.UseScriptExtensions();
-            Config.UseHttp(httpConfig);
+            HostOptions.UseScriptExtensions();
+            HostOptions.UseHttp(httpConfig);
         }
 
         public override bool TryCreate(ScriptBindingContext context, out ScriptBinding binding)

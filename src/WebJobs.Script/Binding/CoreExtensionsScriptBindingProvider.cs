@@ -15,8 +15,8 @@ namespace Microsoft.Azure.WebJobs.Script.Binding
     /// </summary>
     internal class CoreExtensionsScriptBindingProvider : ScriptBindingProvider
     {
-        public CoreExtensionsScriptBindingProvider(JobHostConfiguration config, JObject hostMetadata, ILogger logger)
-            : base(config, hostMetadata, logger)
+        public CoreExtensionsScriptBindingProvider(JobHostOptions hostOptions, JObject hostMetadata, ILogger logger)
+            : base(hostOptions, hostMetadata, logger)
         {
         }
 
@@ -25,8 +25,8 @@ namespace Microsoft.Azure.WebJobs.Script.Binding
         /// <inheritdoc/>
         public override void Initialize()
         {
-            Config.UseTimers();
-            Config.UseCore(AppDirectory);
+            HostOptions.UseTimers();
+            HostOptions.UseCore(AppDirectory);
         }
 
         /// <inheritdoc/>
