@@ -96,12 +96,12 @@ namespace Microsoft.Azure.WebJobs.Script.Binding
 
         protected string Resolve(string name)
         {
-            if (_config.HostConfig.NameResolver == null)
+            if (_config.HostOptions.NameResolver == null)
             {
                 return name;
             }
 
-            return _config.HostConfig.NameResolver.ResolveWholeString(name);
+            return _config.HostOptions.NameResolver.ResolveWholeString(name);
         }
 
         internal static IEnumerable ReadAsEnumerable(object value)

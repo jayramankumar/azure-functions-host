@@ -25,8 +25,9 @@ namespace Microsoft.Azure.WebJobs.Script.Binding
         /// <inheritdoc/>
         public override void Initialize()
         {
-            HostOptions.UseTimers();
-            HostOptions.UseCore(AppDirectory);
+            // TODO: DI (FACAVAL) Register core extensions
+            //HostOptions.UseTimers();
+            //HostOptions.UseCore(AppDirectory);
         }
 
         /// <inheritdoc/>

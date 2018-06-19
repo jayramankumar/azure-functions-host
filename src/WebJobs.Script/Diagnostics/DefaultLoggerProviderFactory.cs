@@ -21,14 +21,14 @@ namespace Microsoft.Azure.WebJobs.Script
         {
             IList<ILoggerProvider> providers = new List<ILoggerProvider>();
 
-            IMetricsLogger metricsLogger = scriptConfig.HostConfig.GetService<IMetricsLogger>();
+            IMetricsLogger metricsLogger = scriptConfig.HostOptions.GetService<IMetricsLogger>();
 
             // Automatically register App Insights if the key is present
             if (!string.IsNullOrEmpty(settingsManager?.ApplicationInsightsInstrumentationKey))
             {
                 metricsLogger?.LogEvent(MetricEventNames.ApplicationInsightsEnabled);
 
-                ITelemetryClientFactory clientFactory = scriptConfig.HostConfig.GetService<ITelemetryClientFactory>() ??
+                ITelemetryClientFactory clientFactory = scriptConfig.HostOptions.GetService<ITelemetryClientFactory>() ??
                     new ScriptTelemetryClientFactory(settingsManager.ApplicationInsightsInstrumentationKey, scriptConfig.ApplicationInsightsSamplingSettings, scriptConfig.LogFilter.Filter);
 
                 providers.Add(new ApplicationInsightsLoggerProvider(clientFactory));

@@ -18,36 +18,37 @@ namespace Microsoft.Azure.WebJobs.Script.Binding
     /// </summary>
     internal class WebJobsCoreScriptBindingProvider : ScriptBindingProvider
     {
-        public WebJobsCoreScriptBindingProvider(JobHostConfiguration config, JObject hostMetadata, ILogger logger)
-            : base(config, hostMetadata, logger)
+        public WebJobsCoreScriptBindingProvider(JobHostOptions options, JObject hostMetadata, ILogger logger)
+            : base(options, hostMetadata, logger)
         {
         }
 
         public override void Initialize()
         {
+            // TODO: DI (FACAVAL) This all gets moved to service and configuration initialization
             // Apply Blobs configuration
-            var configSection = (JObject)Metadata["blobs"];
-            JToken value = null;
-            if (configSection != null)
-            {
-                if (configSection.TryGetValue("centralizedPoisonQueue", out value))
-                {
-                    HostOptions.Blobs.CentralizedPoisonQueue = (bool)value;
-                }
-            }
+            //var configSection = (JObject)Metadata["blobs"];
+            //JToken value = null;
+            //if (configSection != null)
+            //{
+            //    if (configSection.TryGetValue("centralizedPoisonQueue", out value))
+            //    {
+            //        HostOptions.Blobs.CentralizedPoisonQueue = (bool)value;
+            //    }
+            //}
 
-            // apply http configuration configuration
-            configSection = (JObject)Metadata["http"];
-            HttpExtensionConfiguration httpConfig = null;
-            if (configSection != null)
-            {
-                httpConfig = configSection.ToObject<HttpExtensionConfiguration>();
-            }
-            httpConfig = httpConfig ?? new HttpExtensionConfiguration();
-            httpConfig.SetResponse = HttpBinding.SetResponse;
+            //// apply http configuration configuration
+            //configSection = (JObject)Metadata["http"];
+            //HttpExtensionConfiguration httpConfig = null;
+            //if (configSection != null)
+            //{
+            //    httpConfig = configSection.ToObject<HttpExtensionConfiguration>();
+            //}
+            //httpConfig = httpConfig ?? new HttpExtensionConfiguration();
+            //httpConfig.SetResponse = HttpBinding.SetResponse;
 
-            HostOptions.UseScriptExtensions();
-            HostOptions.UseHttp(httpConfig);
+            //HostOptions.UseScriptExtensions();
+            //HostOptions.UseHttp(httpConfig);
         }
 
         public override bool TryCreate(ScriptBindingContext context, out ScriptBinding binding)

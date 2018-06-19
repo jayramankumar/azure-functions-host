@@ -48,7 +48,7 @@ namespace Microsoft.Azure.WebJobs.Script.Description
             IFunctionMetadataResolver metadataResolver = null)
             : base(host, functionMetadata)
         {
-            _metricsLogger = Host.ScriptConfig.HostConfig.GetService<IMetricsLogger>();
+            _metricsLogger = Host.ScriptConfig.HostOptions.GetService<IMetricsLogger>();
             _functionEntryPointResolver = functionEntryPointResolver;
             _metadataResolver = metadataResolver ?? CreateMetadataResolver(host, functionMetadata, FunctionLogger);
             _compilationService = compilationServiceFactory.CreateService(functionMetadata.ScriptType, _metadataResolver);

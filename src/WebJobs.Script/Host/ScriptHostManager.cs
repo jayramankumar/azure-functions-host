@@ -176,9 +176,9 @@ namespace Microsoft.Azure.WebJobs.Script
                     }
 
                     // Create a new host config, but keep the host id from existing one
-                    _config.HostConfig = new JobHostConfiguration(_settingsManager.Configuration)
+                    _config.HostOptions = new JobHostConfiguration(_settingsManager.Configuration)
                     {
-                        HostId = _config.HostConfig.HostId
+                        HostId = _config.HostOptions.HostId
                     };
                     OnInitializeConfig(_config);
                     newInstance = _scriptHostFactory.Create(_environment, EventManager, _settingsManager, _config, _loggerProviderFactory);
@@ -294,7 +294,7 @@ namespace Microsoft.Azure.WebJobs.Script
             // have been initialized
             var host = (ScriptHost)sender;
             string extensionVersion = _settingsManager.GetSetting(EnvironmentSettingNames.FunctionsExtensionVersion);
-            string hostId = host.ScriptConfig.HostConfig.HostId;
+            string hostId = host.ScriptConfig.HostOptions.HostId;
             string message = $"Starting Host (HostId={hostId}, InstanceId={host.InstanceId}, Version={ScriptHost.Version}, ProcessId={Process.GetCurrentProcess().Id}, AppDomainId={AppDomain.CurrentDomain.Id}, Debug={host.InDebugMode}, ConsecutiveErrors={_consecutiveErrorCount}, StartupCount={_hostStartCount}, FunctionsExtensionVersion={extensionVersion})";
             host.Logger.LogInformation(message);
 
@@ -433,12 +433,12 @@ namespace Microsoft.Azure.WebJobs.Script
 
         protected virtual void OnInitializeConfig(ScriptHostConfiguration config)
         {
-            var loggingConnectionString = config.HostConfig.DashboardConnectionString;
+            var loggingConnectionString = config.HostOptions.DashboardConnectionString;
             if (string.IsNullOrEmpty(loggingConnectionString))
             {
                 // if no Dashboard connection string is provided, set this to null
                 // to prevent host startup failure
-                config.HostConfig.DashboardConnectionString = null;
+                config.HostOptions.DashboardConnectionString = null;
             }
         }
 
@@ -452,7 +452,7 @@ namespace Microsoft.Azure.WebJobs.Script
         /// </summary>
         protected virtual void OnHostStarted()
         {
-            var metricsLogger = _config.HostConfig.GetService<IMetricsLogger>();
+            var metricsLogger = _config.HostOptions.GetService<IMetricsLogger>();
             metricsLogger.LogEvent(new HostStarted(Instance));
 
             State = ScriptHostState.Running;

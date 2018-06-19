@@ -152,7 +152,7 @@ namespace Microsoft.Azure.WebJobs.Script.Binding
 
         private bool IsExtensionLoaded(Type type)
         {
-            var registry = _config.HostConfig.GetService<IExtensionRegistry>();
+            var registry = _config.HostOptions.GetService<IExtensionRegistry>();
             var extensions = registry.GetExtensions<IExtensionConfigProvider>();
             foreach (var extension in extensions)
             {
@@ -168,7 +168,7 @@ namespace Microsoft.Azure.WebJobs.Script.Binding
         // Load a single extension
         private void LoadExtension(IExtensionConfigProvider instance, string locationHint = null)
         {
-            JobHostConfiguration config = _config.HostConfig;
+            JobHostConfiguration config = _config.HostOptions;
 
             var type = instance.GetType();
             string name = type.Name;
