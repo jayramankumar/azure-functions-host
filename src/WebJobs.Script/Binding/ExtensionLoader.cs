@@ -168,7 +168,7 @@ namespace Microsoft.Azure.WebJobs.Script.Binding
         // Load a single extension
         private void LoadExtension(IExtensionConfigProvider instance, string locationHint = null)
         {
-            JobHostConfiguration config = _config.HostOptions;
+            JobHostOptions config = _config.HostOptions;
 
             var type = instance.GetType();
             string name = type.Name;
