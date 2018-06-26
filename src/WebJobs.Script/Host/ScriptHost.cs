@@ -53,7 +53,7 @@ namespace Microsoft.Azure.WebJobs.Script
         private readonly ILoggerProviderFactory _loggerProviderFactory;
         private readonly string _storageConnectionString;
         private readonly IDistributedLockManager _distributedLockManager;
-        private readonly IMetricsLogger _metricsLogger;
+        private readonly IMetricsLogger _metricsLogger = null;
         private readonly string _hostLogPath;
         private readonly string _hostConfigFilePath;
         private readonly Stopwatch _stopwatch = new Stopwatch();
@@ -70,7 +70,8 @@ namespace Microsoft.Azure.WebJobs.Script
         private Action _shutdown;
         private AutoRecoveringFileSystemWatcher _debugModeFileWatcher;
         private ImmutableArray<string> _directorySnapshot;
-        private PrimaryHostCoordinator _primaryHostCoordinator;
+        // TODO: DI (FACAVAL) Review
+        private PrimaryHostCoordinator _primaryHostCoordinator = null;
         internal static readonly TimeSpan MinFunctionTimeout = TimeSpan.FromSeconds(1);
         internal static readonly TimeSpan DefaultFunctionTimeout = TimeSpan.FromMinutes(5);
         internal static readonly TimeSpan MaxFunctionTimeout = TimeSpan.FromMinutes(10);
@@ -81,12 +82,14 @@ namespace Microsoft.Azure.WebJobs.Script
         internal static readonly int DefaultMaxMessageLengthBytes = 128 * 1024 * 1024;
         private ScriptSettingsManager _settingsManager;
         private bool _shutdownScheduled;
-        private ILogger _startupLogger;
+        // TODO: DI (FACAVAL) Review
+        private ILogger _startupLogger = null;
         private FileWatcherEventSource _fileEventSource;
         private IList<IDisposable> _eventSubscriptions = new List<IDisposable>();
         private ProxyClientExecutor _proxyClient;
         private IFunctionRegistry _functionDispatcher;
-        private ILoggerFactory _loggerFactory;
+        // TODO: DI (FACAVAL) Review
+        private ILoggerFactory _loggerFactory = null;
         private JobHostOptions _hostOptions;
         private List<FunctionDescriptorProvider> _descriptorProviders;
         private IProcessRegistry _processRegistry = new EmptyProcessRegistry();
@@ -348,10 +351,11 @@ namespace Microsoft.Azure.WebJobs.Script
         internal static void ConfigureLoggerFactory(string instanceId, ILoggerFactory loggerFactory, ScriptHostConfiguration scriptConfig, ScriptSettingsManager settingsManager,
             ILoggerProviderFactory builder, Func<bool> isFileLoggingEnabled, Func<bool> isPrimary, Action<Exception> handleException)
         {
-            foreach (ILoggerProvider provider in builder.CreateLoggerProviders(instanceId, scriptConfig, settingsManager, isFileLoggingEnabled, isPrimary))
-            {
-                loggerFactory.AddProvider(provider);
-            }
+            // TODO: DI (FACAVAL) Review - BrettSam
+            //foreach (ILoggerProvider provider in builder.CreateLoggerProviders(instanceId, scriptConfig, settingsManager, isFileLoggingEnabled, isPrimary))
+            //{
+            //    loggerFactory.AddProvider(provider);
+            //}
 
             // The LoggerFactory must always have this as there's some functional value (handling exceptions) when handling these errors.
             loggerFactory.AddProvider(new HostErrorLoggerProvider(handleException));
@@ -511,19 +515,19 @@ namespace Microsoft.Azure.WebJobs.Script
             if (string.IsNullOrEmpty(_language))
             {
                 _startupLogger.LogTrace("Adding Function descriptor providers for all languages.");
-                _descriptorProviders.Add(new DotNetFunctionDescriptorProvider(this, ScriptConfig));
-                _descriptorProviders.Add(new WorkerFunctionDescriptorProvider(this, ScriptConfig, _functionDispatcher));
+                _descriptorProviders.Add(new DotNetFunctionDescriptorProvider(this, ScriptConfig, _loggerFactory));
+                _descriptorProviders.Add(new WorkerFunctionDescriptorProvider(this, ScriptConfig, _functionDispatcher, _loggerFactory));
             }
             else
             {
                 _startupLogger.LogTrace($"Adding Function descriptor provider for language {_language}.");
                 if (string.Equals(_language, LanguageWorkerConstants.DotNetLanguageWorkerName, StringComparison.OrdinalIgnoreCase))
                 {
-                    _descriptorProviders.Add(new DotNetFunctionDescriptorProvider(this, ScriptConfig));
+                    _descriptorProviders.Add(new DotNetFunctionDescriptorProvider(this, ScriptConfig, _loggerFactory));
                 }
                 else
                 {
-                    _descriptorProviders.Add(new WorkerFunctionDescriptorProvider(this, ScriptConfig, _functionDispatcher));
+                    _descriptorProviders.Add(new WorkerFunctionDescriptorProvider(this, ScriptConfig, _functionDispatcher, _loggerFactory));
                 }
             }
 
@@ -852,7 +856,8 @@ namespace Microsoft.Azure.WebJobs.Script
             // TODO: DI (FACAVAL) Inject this thing.... :S
             //Func<string, FunctionDescriptor> funcLookup = (name) => GetFunctionOrNull(name);
             //_hostOptions.AddService(funcLookup);
-            var extensionLoader = new ExtensionLoader(ScriptConfig, _startupLogger);
+            // TODO: DI (FACAVAL) Inject this (if needed, ideally, remove), remove the instantiation
+            var extensionLoader = new ExtensionLoader(ScriptConfig, null, _startupLogger);
             var usedBindingTypes = extensionLoader.DiscoverBindingTypes(functionMetadata);
 
             var bindingProviders = LoadBindingProviders(ScriptConfig, hostConfigObject, _startupLogger, usedBindingTypes);
@@ -1398,7 +1403,7 @@ namespace Microsoft.Azure.WebJobs.Script
             {
                 combinedFunctionMetadata = proxies.Concat(functions);
 
-                _descriptorProviders.Add(new ProxyFunctionDescriptorProvider(this, ScriptConfig, _proxyClient));
+                _descriptorProviders.Add(new ProxyFunctionDescriptorProvider(this, ScriptConfig, _proxyClient, _loggerFactory));
             }
             else
             {
@@ -2004,8 +2009,6 @@ namespace Microsoft.Azure.WebJobs.Script
                 {
                     (function.Invoker as IDisposable)?.Dispose();
                 }
-
-                _loggerFactory?.Dispose();
 
                 if (_descriptorProviders != null)
                 {

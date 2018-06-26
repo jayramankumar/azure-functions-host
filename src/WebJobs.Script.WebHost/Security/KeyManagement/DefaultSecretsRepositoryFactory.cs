@@ -13,13 +13,13 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost
 {
     public sealed class DefaultSecretsRepositoryFactory : ISecretsRepositoryFactory
     {
-        public ISecretsRepository Create(ScriptSettingsManager settingsManager, WebHostSettings webHostSettings, ScriptHostConfiguration config)
+        public ISecretsRepository Create(ScriptSettingsManager settingsManager, WebHostSettings webHostSettings, ScriptHostConfiguration config, IConnectionStringProvider connectionStringProvider)
         {
             string secretStorageType = settingsManager.GetSetting(EnvironmentSettingNames.AzureWebJobsSecretStorageType);
-            string storageString = AmbientConnectionStringProvider.Instance.GetConnectionString(ConnectionStringNames.Storage);
+            string storageString = connectionStringProvider.GetConnectionString(ConnectionStringNames.Storage);
             if (secretStorageType != null && secretStorageType.Equals("Blob", StringComparison.OrdinalIgnoreCase) && storageString != null)
             {
-                string siteSlotName = settingsManager.AzureWebsiteUniqueSlotName ?? config.HostConfig.HostId;
+                string siteSlotName = settingsManager.AzureWebsiteUniqueSlotName ?? config.HostOptions.HostId;
                 return new BlobStorageSecretsRepository(Path.Combine(webHostSettings.SecretsPath, "Sentinels"), storageString, siteSlotName);
             }
             else

@@ -10,6 +10,7 @@ using Microsoft.Azure.WebJobs.Host;
 using Microsoft.Azure.WebJobs.Script.Description;
 using Microsoft.Azure.WebJobs.Script.Extensibility;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Newtonsoft.Json.Linq;
 
 namespace Microsoft.Azure.WebJobs.Script.Binding
@@ -23,7 +24,7 @@ namespace Microsoft.Azure.WebJobs.Script.Binding
         private IJobHostMetadataProvider _metadataProvider;
 
         public GeneralScriptBindingProvider(
-            JobHostOptions hostOptions,
+            IOptions<JobHostOptions> hostOptions,
             JObject hostMetadata,
             ILogger logger)
             : base(hostOptions, hostMetadata, logger)

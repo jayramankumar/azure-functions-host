@@ -4,6 +4,7 @@
 using System.Reflection;
 using System.Runtime.Loader;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Newtonsoft.Json.Linq;
 
 namespace Microsoft.Azure.WebJobs.Script.Extensibility
@@ -13,15 +14,17 @@ namespace Microsoft.Azure.WebJobs.Script.Extensibility
     /// </summary>
     public abstract class ScriptBindingProvider
     {
+        private readonly IOptions<JobHostOptions> _hostOptions;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="ScriptBindingProvider"/> class.
         /// </summary>
         /// <param name="hostOptions">The <see cref="JobHostConfiguration"/>.</param>
         /// <param name="hostMetadata">The host configuration metadata.</param>
         /// <param name="logger">The <see cref="ILogger"/> that can be used to log trace events.</param>
-        protected ScriptBindingProvider(JobHostOptions hostOptions, JObject hostMetadata, ILogger logger)
+        protected ScriptBindingProvider(IOptions<JobHostOptions> hostOptions, JObject hostMetadata, ILogger logger)
         {
-            HostOptions = hostOptions;
+            _hostOptions = hostOptions;
             Metadata = hostMetadata;
             Logger = logger;
         }
@@ -29,7 +32,7 @@ namespace Microsoft.Azure.WebJobs.Script.Extensibility
         /// <summary>
         /// Gets the <see cref="JobHostConfiguration"/>.
         /// </summary>
-        protected JobHostOptions HostOptions { get; private set; }
+        protected JobHostOptions HostOptions => _hostOptions.Value;
 
         /// <summary>
         /// Gets the host configuration metadata.
