@@ -36,6 +36,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="DependencyInjection\" />
     <Folder Include="Routing\" />
   </ItemGroup>
 
