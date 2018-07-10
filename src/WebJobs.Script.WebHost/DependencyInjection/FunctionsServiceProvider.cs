@@ -1,12 +1,12 @@
-﻿using DryIoc;
+﻿// Copyright (c) .NET Foundation. All rights reserved.
+// Licensed under the MIT License. See License.txt in the project root for license information.
+
+using System;
+using DryIoc;
 using DryIoc.Microsoft.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using System;
-using System.Collections.Concurrent;
-using System.Linq;
 
-namespace ServiceScopingPoc
+namespace Microsoft.Azure.WebJobs.Script.WebHost.DependencyInjection
 {
     public class FunctionsServiceProvider : IServiceProvider, IServiceScopeFactory
     {
