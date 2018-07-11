@@ -102,7 +102,8 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost
 
             // TODO: DI (FACAVAL) Removed the previous workaround to pass a logger factory into the host resolver
             // this is no longer needed, but we need to validate log output.
-            services.AddSingleton<WebHostResolver>();
+            // Remove the need to have the WebHostResolver
+            //services.AddSingleton<WebHostResolver>();
 
             // Temporary - This should be replaced with a simple type registration.
             services.AddTransient<IExtensionsManager>(c =>
@@ -111,9 +112,12 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost
                 return new ExtensionsManager(hostInstance.ScriptConfig.RootScriptPath, hostInstance.Logger, hostInstance.ScriptConfig.NugetFallBackPath);
             });
 
+            // TODO: DI (FACAVAL) This will be replacet by the hosted service implementation
+            services.AddSingleton<IScriptHostManager, Host.TempScriptHostManager>();
+
             // The services below need to be scoped to a pseudo-tenant (warm/specialized environment)
             // TODO: DI (FACAVAL) This will need the child container/scoping logic for warm/specialized hosts
-            services.AddSingleton<WebScriptHostManager>(c => c.GetService<WebHostResolver>().GetWebScriptHostManager());
+            //services.AddSingleton<WebScriptHostManager>(c => c.GetService<WebHostResolver>().GetWebScriptHostManager());
             services.AddSingleton<ISecretManager>(c => c.GetService<ISecretManagerFactory>().Create());
             services.AddSingleton<IWebFunctionsManager, WebFunctionsManager>();
             services.AddSingleton<IInstanceManager, InstanceManager>();
