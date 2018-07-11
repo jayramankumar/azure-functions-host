@@ -90,7 +90,7 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost
 
             secretsRepositoryFactory = secretsRepositoryFactory ?? new DefaultSecretsRepositoryFactory();
             var secretsRepository = secretsRepositoryFactory.Create(settingsManager, webHostSettings, config, connectionStringProvider);
-            _secretManager = secretManagerFactory.Create(settingsManager, loggerFactory.CreateLogger(ScriptConstants.LogCategoryHostGeneral), secretsRepository);
+            _secretManager = secretManagerFactory.Create();
             eventGenerator = eventGenerator ?? new EtwEventGenerator();
 
             _bindingWebHookProvider = new WebJobsSdkExtensionHookProvider(_secretManager);

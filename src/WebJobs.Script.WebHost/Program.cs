@@ -4,8 +4,11 @@
 using System.Linq;
 using System.Threading;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.Azure.WebJobs.Script.WebHost.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Configuration.EnvironmentVariables;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Microsoft.Azure.WebJobs.Script.WebHost
 {
@@ -28,6 +31,10 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost
         public static IWebHostBuilder CreateWebHostBuilder(string[] args = null)
         {
             return Microsoft.AspNetCore.WebHost.CreateDefaultBuilder(args)
+                .ConfigureServices(services =>
+                {
+                    services.Replace(ServiceDescriptor.Singleton<IServiceProviderFactory<IServiceCollection>>(new FunctionsServiceProviderFactory()));
+                })
                 .ConfigureAppConfiguration((builderContext, config) =>
                 {
                     // replace the default environment source with our own

@@ -29,9 +29,12 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost
             _logger = loggerFactory.CreateLogger(ScriptConstants.LogCategoryHostGeneral);
         }
 
-        public Task StartAsync(CancellationToken cancellationToken)
+        public async Task StartAsync(CancellationToken cancellationToken)
         {
-            _logger.LogInformation("Initializing WebScriptHostManager.");
+            _logger.LogInformation("Initializing Azure Functions Host.");
+            _host = BuildHost();
+            await _host.StartAsync(cancellationToken);
+
             _hostTask = _scriptHostManager.EnsureHostStarted(_cancellationTokenSource.Token);
 
             return Task.CompletedTask;
