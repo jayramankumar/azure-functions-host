@@ -4,8 +4,10 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Azure.WebJobs.Hosting;
 using Microsoft.Azure.WebJobs.Script.WebHost.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -32,7 +34,6 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost
         {
             _logger.LogInformation("Initializing Azure Functions Host.");
             _host = BuildHost();
-
             _hostTask = _host.StartAsync(cancellationToken);
 
             return Task.CompletedTask;
@@ -42,7 +43,7 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost
         {
             _cancellationTokenSource.Cancel();
 
-            Task result = await Task.WhenAny(_hostTask, Task.Delay(TimeSpan.FromSeconds(10)));
+            Task result = await Task.WhenAny(_host.StopAsync(cancellationToken), Task.Delay(TimeSpan.FromSeconds(10)));
 
             if (result != _hostTask)
             {
@@ -64,6 +65,14 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost
                                 fa.AddConsole(LogLevel.Warning);
                                 s.AddSingleton<ILoggerFactory>(fa);
                                 s.AddSingleton<IHostLifetime, ScriptHostLifetime>();
+                                s.AddSingleton<WebJobs.Host.Executors.IHostIdProvider, IdProvider>();
+                            })
+                            .ConfigureWebJobsHost()
+                            .AddAzureStorageCoreServices()
+                            .ConfigureServices(s =>
+                            {
+                                s.RemoveAll<IHostedService>();
+                                s.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, JobHostService>());
                             })
                             .Build();
         }
@@ -81,5 +90,17 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost
         }
 
         public void Dispose() => Dispose(true);
+    }
+
+    public class IdProvider : WebJobs.Host.Executors.IHostIdProvider
+    {
+        public IdProvider()
+        {
+        }
+
+        public Task<string> GetHostIdAsync(CancellationToken cancellationToken)
+        {
+            return Task.FromResult("0980980980980980980980989009");
+        }
     }
 }

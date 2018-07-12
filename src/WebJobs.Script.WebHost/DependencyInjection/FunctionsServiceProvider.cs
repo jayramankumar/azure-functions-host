@@ -2,9 +2,11 @@
 // Licensed under the MIT License. See License.txt in the project root for license information.
 
 using System;
+using System.Collections.Generic;
 using DryIoc;
 using DryIoc.Microsoft.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
 namespace Microsoft.Azure.WebJobs.Script.WebHost.DependencyInjection
 {
@@ -49,7 +51,16 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost.DependencyInjection
                 return this;
             }
 
-            var service = _currentResolver.Container.Resolve(serviceType, IfUnresolved.ReturnDefault);
+            object service;
+            if (serviceType == typeof(IEnumerable<IHostedService>))
+            {
+                service = _currentResolver.Container.ResolveMany<IHostedService>();
+            }
+            else
+            {
+                service = _currentResolver.Container.Resolve(serviceType, IfUnresolved.ReturnDefault);
+            }
+
             string name = serviceType.Name;
 
             return service;
@@ -67,7 +78,15 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost.DependencyInjection
         internal void UpdateChildServices(IServiceCollection serviceDescriptors)
         {
             Rules rules = _defaultContainerRules
-                .WithUnknownServiceResolvers(request => new DelegateFactory(_ => _root.Resolve(request.ServiceType, IfUnresolved.ReturnDefault)));
+                .WithUnknownServiceResolvers(request =>
+                {
+                    if (request.ServiceType == typeof(IEnumerable<IHostedService>))
+                    {
+                        return new DelegateFactory(_ => null);
+                    }
+
+                    return new DelegateFactory(_ => _root.Resolve(request.ServiceType, IfUnresolved.ReturnDefault));
+                });
 
             var resolver = new Container(rules);
             resolver.Populate(serviceDescriptors);
