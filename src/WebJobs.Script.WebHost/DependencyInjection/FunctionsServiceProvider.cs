@@ -69,6 +69,8 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost.DependencyInjection
         public void AddServices(IServiceCollection services)
         {
             _root.Populate(services);
+
+            var results = _root.Validate();
         }
 
         /// <summary>
@@ -98,6 +100,8 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost.DependencyInjection
             {
                 previous.Dispose();
             }
+
+            var results = resolver.Validate();
         }
 
         public IServiceScope CreateScope()

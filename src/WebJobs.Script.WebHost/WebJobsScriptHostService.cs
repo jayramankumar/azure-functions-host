@@ -68,7 +68,9 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost
                                 s.AddSingleton<WebJobs.Host.Executors.IHostIdProvider, IdProvider>();
                             })
                             .ConfigureWebJobsHost()
+                            .AddWebJobsLogging() // Enables WebJobs v1 classic logging
                             .AddAzureStorageCoreServices()
+                            .AddAzureStorage()
                             .ConfigureServices(s =>
                             {
                                 s.RemoveAll<IHostedService>();
