@@ -253,17 +253,19 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost
         private void InitializeHttp()
         {
             // get the registered http configuration from the extension registry
-            HttpExtensionConfiguration httpConfig = _extensionRegistry.GetExtensions<IExtensionConfigProvider>().OfType<HttpExtensionConfiguration>().Single();
+            // TODO: DI (FACAVAL) Have the HttpExtensionOptions instance injected.
+            // The entire HTTP initialization logic should be moved out of this type
+            //HttpExtensionConfiguration httpConfig = _extensionRegistry.GetExtensions<IExtensionConfigProvider>().OfType<HttpExtensionConfiguration>().Single();
 
-            InitializeHttpFunctions(Instance.Functions, httpConfig);
+            InitializeHttpFunctions(Instance.Functions, new HttpExtensionOptions());
         }
 
-        private void InitializeHttpFunctions(IEnumerable<FunctionDescriptor> functions, HttpExtensionConfiguration httpConfig)
+        private void InitializeHttpFunctions(IEnumerable<FunctionDescriptor> functions, HttpExtensionOptions httpOptions)
         {
             _router.ClearRoutes();
 
             // TODO: FACAVAL Instantiation of the ScriptRouteHandler should be cleaned up
-            WebJobsRouteBuilder routesBuilder = _router.CreateBuilder(new ScriptRouteHandler(_loggerFactory, this, _settingsManager, false), httpConfig.RoutePrefix);
+            WebJobsRouteBuilder routesBuilder = _router.CreateBuilder(new ScriptRouteHandler(_loggerFactory, this, _settingsManager, false), httpOptions.RoutePrefix);
 
             // Proxies do not honor the route prefix defined in host.json
             WebJobsRouteBuilder proxiesRoutesBuilder = _router.CreateBuilder(new ScriptRouteHandler(_loggerFactory, this, _settingsManager, true), routePrefix: null);

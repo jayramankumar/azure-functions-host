@@ -71,6 +71,7 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost
                             .AddWebJobsLogging() // Enables WebJobs v1 classic logging
                             .AddAzureStorageCoreServices()
                             .AddAzureStorage()
+                            .AddHttp()
                             .ConfigureServices(s =>
                             {
                                 s.RemoveAll<IHostedService>();
