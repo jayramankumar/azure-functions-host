@@ -15,6 +15,7 @@ using Microsoft.Azure.WebJobs.Script.Management.Models;
 using Microsoft.Azure.WebJobs.Script.WebHost.Extensions;
 using Microsoft.Azure.WebJobs.Script.WebHost.Security;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -32,9 +33,9 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost.Management
         private readonly ILogger _logger;
         private readonly HttpClient _client;
 
-        public WebFunctionsManager(ScriptWebHostOptions webSettings, ILoggerFactory loggerFactory, HttpClient client)
+        public WebFunctionsManager(IOptions<ScriptWebHostOptions> webSettings, ILoggerFactory loggerFactory, HttpClient client)
         {
-            _config = WebHostResolver.CreateScriptHostConfiguration(webSettings);
+            _config = WebHostResolver.CreateScriptHostConfiguration(webSettings.Value);
             _logger = loggerFactory?.CreateLogger(ScriptConstants.LogCategoryKeysController);
             _client = client;
         }
