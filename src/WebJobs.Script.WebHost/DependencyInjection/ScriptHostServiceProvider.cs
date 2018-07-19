@@ -12,7 +12,7 @@ using Microsoft.Extensions.Hosting;
 
 namespace Microsoft.Azure.WebJobs.Script.WebHost.DependencyInjection
 {
-    public class ScriptHostServiceProvider : IServiceProvider, IServiceScopeFactory
+    public class ScriptHostServiceProvider : IServiceProvider, IServiceScopeFactory, ISupportRequiredService
     {
         private const string ScriptJobHostScope = "scriptjobhost";
 
@@ -70,6 +70,16 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost.DependencyInjection
 
         public object GetService(Type serviceType)
         {
+            return GetService(serviceType, IfUnresolved.ReturnDefault);
+        }
+
+        public object GetRequiredService(Type serviceType)
+        {
+            return GetService(serviceType, IfUnresolved.Throw);
+        }
+
+        private object GetService(Type serviceType, IfUnresolved ifUnresolved)
+        {
             if (serviceType == typeof(IServiceProvider))
             {
                 return this;
@@ -80,7 +90,7 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost.DependencyInjection
                 return this;
             }
 
-            return _currentResolver.Container.Resolve(serviceType, IfUnresolved.ReturnDefault);
+            return _currentResolver.Container.Resolve(serviceType, ifUnresolved);
         }
 
         public void AddServices(IServiceCollection services)
