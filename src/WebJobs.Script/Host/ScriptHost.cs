@@ -308,9 +308,9 @@ namespace Microsoft.Azure.WebJobs.Script
                 InitializeFileWatchers();
                 await InitializeWorkersAsync();
 
-                // TODO: DI (FACAVAL) Pass configuration
+                // Generate Functions
                 var functionMetadata = _functionMetadataManager.FunctionMetadata;
-                var directTypes = LoadBindingExtensions(functionMetadata, new JObject());
+                var directTypes = GetDirectTypes(functionMetadata);
                 InitializeFunctionDescriptors(functionMetadata);
                 GenerateFunctions(directTypes);
 
@@ -319,7 +319,7 @@ namespace Microsoft.Azure.WebJobs.Script
             }
         }
 
-        // TODO: DI (FACAVAL) Logger configuration is done on startup
+        // TODO: DI (FACAVAL) Logger configuration is done on startup - brettsam
         //private void ConfigureLoggerFactory(bool recreate = false)
         //{
         //    // Ensure we always have an ILoggerFactory,
@@ -707,22 +707,6 @@ namespace Microsoft.Azure.WebJobs.Script
                 string errorMsg = "An error occurred while purging log files";
                 _startupLogger.LogError(0, ex, errorMsg);
             }
-        }
-
-        private IEnumerable<Type> LoadBindingExtensions(IEnumerable<FunctionMetadata> functionMetadata, JObject hostConfigObject)
-        {
-            // TODO: DI (FACAVAL) Inject this thing.... :S
-            //Func<string, FunctionDescriptor> funcLookup = (name) => GetFunctionOrNull(name);
-            //_hostOptions.AddService(funcLookup);
-            // TODO: DI (FACAVAL) Inject this (if needed, ideally, remove), remove the instantiation
-            var extensionLoader = new ExtensionLoader(ScriptOptions, null, _startupLogger);
-            var usedBindingTypes = extensionLoader.DiscoverBindingTypes(functionMetadata);
-
-            var directTypes = GetDirectTypes(functionMetadata);
-            extensionLoader.LoadDirectlyReferencedExtensions(directTypes);
-            _startupLogger.LogTrace("Extension loading complete.");
-
-            return directTypes;
         }
 
         // Validate that for any precompiled assembly, all functions have the same configuration precedence.
