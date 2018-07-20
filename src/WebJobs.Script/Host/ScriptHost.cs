@@ -718,24 +718,9 @@ namespace Microsoft.Azure.WebJobs.Script
             var extensionLoader = new ExtensionLoader(ScriptOptions, null, _startupLogger);
             var usedBindingTypes = extensionLoader.DiscoverBindingTypes(functionMetadata);
 
-            var bindingProviders = LoadBindingProviders(_hostOptions, hostConfigObject, _startupLogger, usedBindingTypes);
-            ScriptOptions.BindingProviders = bindingProviders;
-            _startupLogger.LogTrace("Binding providers loaded.");
-
             var directTypes = GetDirectTypes(functionMetadata);
             extensionLoader.LoadDirectlyReferencedExtensions(directTypes);
             _startupLogger.LogTrace("Extension loading complete.");
-
-            // Now all extensions have been loaded, the metadata is finalized.
-            // There's a single script binding instance that services all extensions.
-            // give that script binding the metadata for all loaded extensions so it can dispatch to them.
-            using (_metricsLogger.LatencyEvent(MetricEventNames.HostStartupCreateMetadataProviderLatency))
-            {
-                var generalProvider = ScriptOptions.BindingProviders.OfType<GeneralScriptBindingProvider>().First();
-                var metadataProvider = this.CreateMetadataProvider();
-                generalProvider.CompleteInitialization(metadataProvider);
-                _startupLogger.LogTrace("Metadata provider created.");
-            }
 
             return directTypes;
         }
@@ -831,45 +816,6 @@ namespace Microsoft.Azure.WebJobs.Script
         //    }
         //    return metricsLogger;
         //}
-
-        private static Collection<ScriptBindingProvider> LoadBindingProviders(IOptions<JobHostOptions> options, JObject hostMetadata, ILogger logger, IEnumerable<string> usedBindingTypes)
-        {
-            // Register our built in extensions
-            var bindingProviderTypes = new Collection<Type>()
-            {
-                // binding providers defined in this assembly
-                typeof(WebJobsCoreScriptBindingProvider),
-
-                // binding providers defined in known extension assemblies
-                typeof(CoreExtensionsScriptBindingProvider),
-            };
-
-            HashSet<Type> existingTypes = new HashSet<Type>();
-
-            // General purpose binder that works directly against SDK.
-            // This should eventually replace all other ScriptBindingProvider
-            bindingProviderTypes.Add(typeof(GeneralScriptBindingProvider));
-
-            // Create the binding providers
-            var bindingProviders = new Collection<ScriptBindingProvider>();
-            foreach (var bindingProviderType in bindingProviderTypes)
-            {
-                try
-                {
-                    var provider = (ScriptBindingProvider)Activator.CreateInstance(bindingProviderType, new object[] { options, hostMetadata, logger });
-                    bindingProviders.Add(provider);
-                }
-                catch (Exception ex)
-                {
-                    // If we're unable to load create a binding provider for any reason, log
-                    // the error and continue
-                    string errorMsg = string.Format("Unable to create binding provider '{0}'", bindingProviderType.FullName);
-                    logger.LogError(0, ex, errorMsg);
-                }
-            }
-
-            return bindingProviders;
-        }
 
         internal Collection<FunctionMetadata> ReadProxyMetadata(ScriptHostOptions config, ScriptSettingsManager settingsManager = null)
         {
